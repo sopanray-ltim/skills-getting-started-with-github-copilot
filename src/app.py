@@ -10,9 +10,27 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
 from pathlib import Path
+from pydantic import BaseModel
+from fastapi import Body
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
+
+# Unregister endpoint and model (must be after app and activities are defined)
+class UnregisterRequest(BaseModel):
+    activity: str
+    email: str
+
+@app.post("/activities/{activity_name}/unregister")
+def unregister_participant(activity_name: str, req: UnregisterRequest = Body(...)):
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    activity = activities[activity_name]
+    email = req.email
+    if email not in activity["participants"]:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    activity["participants"].remove(email)
+    return {"message": f"Unregistered {email} from {activity_name}"}
 
 # Mount the static files directory
 current_dir = Path(__file__).parent
